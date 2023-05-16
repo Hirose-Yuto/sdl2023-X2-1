@@ -6,7 +6,7 @@ import (
 	"path"
 )
 
-const repoPath = "/exec/.git"
+const repoPath = "exec/.git"
 
 type App struct {
 	branchName  string
@@ -27,7 +27,8 @@ func NewApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	ref := string(bs)
+	ref := string(bs[:len(bs)-1])
+
 	objectService := tools.NewObjectService(repoPath)
 	commit, err := objectService.ReadCommit(ref)
 	if err != nil {
@@ -35,6 +36,9 @@ func NewApp() (*App, error) {
 	}
 
 	pathObjectIdMap, err := getPathObjectIdMap(objectService, commit.Tree, "")
+	if err != nil {
+		return nil, err
+	}
 
 	return &App{
 		branchName:  branchName,

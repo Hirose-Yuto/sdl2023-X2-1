@@ -2,6 +2,7 @@ package tools
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"main/app/models"
 	"strconv"
@@ -50,7 +51,7 @@ func (oS *ObjectService) ReadTree(objectID string) (*models.TreeObject, error) {
 			return nil, err
 		}
 
-		objectIDStr, err := oS.readHexUntilSpecificByte(dataBuffer)
+		objectIDStr, err := oS.readRawHexUntilSpecificByte(dataBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -135,12 +136,24 @@ func (oS *ObjectService) readStringUntilSpecificByte(dataBuffer *bytes.Buffer, s
 
 func (oS *ObjectService) readHexUntilSpecificByte(dataBuffer *bytes.Buffer) (string, error) {
 	hex := ""
+	for i := 0; i < 160/4; i++ {
+		b, err := dataBuffer.ReadByte()
+		if err != nil {
+			return "", err
+		}
+		hex += string(b)
+	}
+	return hex, nil
+}
+
+func (oS *ObjectService) readRawHexUntilSpecificByte(dataBuffer *bytes.Buffer) (string, error) {
+	hex := ""
 	for i := 0; i < 160/8; i++ {
 		b, err := dataBuffer.ReadByte()
 		if err != nil {
 			return "", err
 		}
-		hex += strconv.FormatInt(int64(b), 16)
+		hex += fmt.Sprintf("%02s", strconv.FormatInt(int64(b), 16))
 	}
 	return hex, nil
 }
@@ -152,7 +165,11 @@ func (oS *ObjectService) WriteBlob(content string) (string, error) {
 func (oS *ObjectService) WriteTree(tree *models.TreeObject) (string, error) {
 	content := ""
 	for _, element := range tree.Elements {
-		content += element.Meta + " " + element.Name + "\000" + element.ObjectID
+		oID, err := hex.DecodeString(element.ObjectID)
+		if err != nil {
+			return "", err
+		}
+		content += element.Meta + " " + element.Name + "\000" + string(oID)
 	}
 	return oS.objectIO.WriteObject(content, models.TREE)
 }
@@ -161,10 +178,10 @@ func (oS *ObjectService) WriteCommit(commit *models.CommitObject) (string, error
 	content := "tree " + commit.Tree + "\n"
 	content += "parent " + commit.Parent + "\n"
 	content += "author " + commit.Author + "\n"
-	content += "committer" + commit.Committer + "\n"
+	content += "committer " + commit.Committer + "\n"
 	content += "\n"
-	content += commit.Message
-	return oS.objectIO.WriteObject(content, models.TREE)
+	content += commit.Message + "\n"
+	return oS.objectIO.WriteObject(content, models.COMMIT)
 }
 
 func (oS *ObjectService) UpdateRef(branchName string, commitId string) error {

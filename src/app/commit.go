@@ -3,6 +3,8 @@ package app
 import (
 	"errors"
 	"main/app/models"
+	"strconv"
+	"time"
 )
 
 func (app *App) Commit(message string) error {
@@ -11,9 +13,9 @@ func (app *App) Commit(message string) error {
 	}
 	commit := &models.CommitObject{
 		Tree:      app.stagedTree,
-		Parent:    app.currentTree,
-		Author:    "Go Git <go@go.com> 00000 +0900",
-		Committer: "Go Git <go@go.com> 00000 +0900",
+		Parent:    app.ref,
+		Author:    "Go-Git <go@go.com> " + strconv.Itoa(int(time.Now().Unix())) + " +0900",
+		Committer: "Go-Git <go@go.com> " + strconv.Itoa(int(time.Now().Unix())) + " +0900",
 		Message:   message,
 	}
 	commitId, err := app.objectService.WriteCommit(commit)

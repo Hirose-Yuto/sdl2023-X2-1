@@ -103,7 +103,8 @@ func (oio *ObjectIo) getObjectPath(objectID string) string {
 }
 
 func (oio *ObjectIo) UpdateRef(branchName string, commitId string) error {
-	if err := os.WriteFile(branchName, []byte(commitId), os.ModePerm); err != nil {
+	commitId += "\n"
+	if err := os.WriteFile(path.Join(oio.repoPath, branchName), []byte(commitId), os.ModePerm); err != nil {
 		return err
 	}
 	return nil
