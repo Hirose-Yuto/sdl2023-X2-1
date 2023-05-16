@@ -10,6 +10,7 @@ const repoPath = "/exec/.git"
 
 type App struct {
 	branchName  string
+	ref         string
 	currentTree string
 
 	// Services
@@ -26,13 +27,21 @@ func NewApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	ref := string(bs)
+	objectService := tools.NewObjectService(repoPath)
+	commit, err := objectService.ReadCommit(ref)
+	if err != nil {
+		return nil, err
+	}
+
 	return &App{
 		branchName:  branchName,
-		currentTree: string(bs),
+		ref:         ref,
+		currentTree: commit.Tree,
 
-		objectService: tools.NewObjectService(repoPath),
+		objectService: objectService,
 
-		stagedTree:      string(bs),
+		stagedTree:      commit.Tree,
 		pathObjectIdMap: map[string]string{},
 	}, nil
 }

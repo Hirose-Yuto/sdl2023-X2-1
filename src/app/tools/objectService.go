@@ -15,7 +15,7 @@ func NewObjectService(repoPath string) *ObjectService {
 	return &ObjectService{objectIO: NewObjectIO(repoPath)}
 }
 
-func (oS ObjectService) ReadBlob(objectID string) (string, error) {
+func (oS *ObjectService) ReadBlob(objectID string) (string, error) {
 	data, err := oS.objectIO.ReadObject(objectID, models.BLOB)
 	if err != nil {
 		return "", err
@@ -23,7 +23,7 @@ func (oS ObjectService) ReadBlob(objectID string) (string, error) {
 	return string(data), nil
 }
 
-func (oS ObjectService) ReadTree(objectID string) (*models.TreeObject, error) {
+func (oS *ObjectService) ReadTree(objectID string) (*models.TreeObject, error) {
 	treeObject := &models.TreeObject{
 		Elements: make([]*models.TreeElement, 0),
 	}
@@ -60,7 +60,7 @@ func (oS ObjectService) ReadTree(objectID string) (*models.TreeObject, error) {
 	return treeObject, nil
 }
 
-func (oS ObjectService) ReadCommit(objectID string) (*models.CommitObject, error) {
+func (oS *ObjectService) ReadCommit(objectID string) (*models.CommitObject, error) {
 	data, err := oS.objectIO.ReadObject(objectID, models.COMMIT)
 	if err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func (oS ObjectService) ReadCommit(objectID string) (*models.CommitObject, error
 	return &models.CommitObject{Tree: tree, Parent: parent, Author: author, Committer: committer, Message: message}, nil
 }
 
-func (oS ObjectService) readStringUntilSpecificByte(dataBuffer *bytes.Buffer, sep byte) (string, error) {
+func (oS *ObjectService) readStringUntilSpecificByte(dataBuffer *bytes.Buffer, sep byte) (string, error) {
 	content := ""
 	for {
 		b, err := dataBuffer.ReadByte()
@@ -133,7 +133,7 @@ func (oS ObjectService) readStringUntilSpecificByte(dataBuffer *bytes.Buffer, se
 	return content, nil
 }
 
-func (oS ObjectService) readHexUntilSpecificByte(dataBuffer *bytes.Buffer) (string, error) {
+func (oS *ObjectService) readHexUntilSpecificByte(dataBuffer *bytes.Buffer) (string, error) {
 	hex := ""
 	for i := 0; i < 160/8; i++ {
 		b, err := dataBuffer.ReadByte()
@@ -145,11 +145,11 @@ func (oS ObjectService) readHexUntilSpecificByte(dataBuffer *bytes.Buffer) (stri
 	return hex, nil
 }
 
-func (oS ObjectService) WriteBlob(content string) (string, error) {
+func (oS *ObjectService) WriteBlob(content string) (string, error) {
 	return oS.objectIO.WriteObject(content, models.BLOB)
 }
 
-func (oS ObjectService) WriteTree(tree *models.TreeObject) (string, error) {
+func (oS *ObjectService) WriteTree(tree *models.TreeObject) (string, error) {
 	content := ""
 	for _, element := range tree.Elements {
 		content += element.Meta + " " + element.Name + "\000" + element.ObjectID
@@ -157,7 +157,7 @@ func (oS ObjectService) WriteTree(tree *models.TreeObject) (string, error) {
 	return oS.objectIO.WriteObject(content, models.TREE)
 }
 
-func (oS ObjectService) WriteCommit(commit models.CommitObject) (string, error) {
+func (oS *ObjectService) WriteCommit(commit *models.CommitObject) (string, error) {
 	content := "tree " + commit.Tree + "\n"
 	content += "parent " + commit.Parent + "\n"
 	content += "author " + commit.Author + "\n"
@@ -165,4 +165,8 @@ func (oS ObjectService) WriteCommit(commit models.CommitObject) (string, error) 
 	content += "\n"
 	content += commit.Message
 	return oS.objectIO.WriteObject(content, models.TREE)
+}
+
+func (oS *ObjectService) UpdateRef(branchName string, commitId string) error {
+	return oS.objectIO.UpdateRef(branchName, commitId)
 }

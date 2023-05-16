@@ -101,3 +101,10 @@ func (oio *ObjectIo) zlibEncode(content []byte) ([]byte, error) {
 func (oio *ObjectIo) getObjectPath(objectID string) string {
 	return path.Join(oio.repoPath, "objects", objectID[0:2], objectID[2:])
 }
+
+func (oio *ObjectIo) UpdateRef(branchName string, commitId string) error {
+	if err := os.WriteFile(branchName, []byte(commitId), os.ModePerm); err != nil {
+		return err
+	}
+	return nil
+}
