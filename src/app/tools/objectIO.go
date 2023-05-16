@@ -29,7 +29,7 @@ func (oio *ObjectIo) ReadObject(objectID string, objectType models.ObjectType) (
 	if err != nil {
 		return nil, err
 	}
-	data = data[len([]byte(models.ToString(objectType)+" ")):]
+	data = data[len([]byte(objectType.ToString()+" ")):]
 	sizeStr := ""
 	dataBuffer := bytes.NewBuffer(data)
 	for {
@@ -54,7 +54,7 @@ func (oio *ObjectIo) ReadObject(objectID string, objectType models.ObjectType) (
 }
 
 func (oio *ObjectIo) WriteObject(content string, objectType models.ObjectType) (string, error) {
-	blobData := models.ToString(objectType) + " " + strconv.Itoa(len([]byte(content))) + "\000" + content
+	blobData := objectType.ToString() + " " + strconv.Itoa(len([]byte(content))) + "\000" + content
 	sh := sha1.New()
 	if _, err := io.WriteString(sh, blobData); err != nil {
 		return "", err

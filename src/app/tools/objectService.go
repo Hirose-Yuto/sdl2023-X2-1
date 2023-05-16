@@ -144,3 +144,25 @@ func (oS ObjectService) readHexUntilSpecificByte(dataBuffer *bytes.Buffer) (stri
 	}
 	return hex, nil
 }
+
+func (oS ObjectService) WriteBlob(content string) (string, error) {
+	return oS.objectIO.WriteObject(content, models.BLOB)
+}
+
+func (oS ObjectService) WriteTree(tree *models.TreeObject) (string, error) {
+	content := ""
+	for _, element := range tree.Elements {
+		content += element.Meta + " " + element.Name + "\000" + element.ObjectID
+	}
+	return oS.objectIO.WriteObject(content, models.TREE)
+}
+
+func (oS ObjectService) WriteCommit(commit models.CommitObject) (string, error) {
+	content := "tree " + commit.Tree + "\n"
+	content += "parent " + commit.Parent + "\n"
+	content += "author " + commit.Author + "\n"
+	content += "committer" + commit.Committer + "\n"
+	content += "\n"
+	content += commit.Message
+	return oS.objectIO.WriteObject(content, models.TREE)
+}

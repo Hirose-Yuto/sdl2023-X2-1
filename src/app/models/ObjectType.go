@@ -8,8 +8,8 @@ const (
 	TREE
 )
 
-func ToString(objectType ObjectType) string {
-	switch objectType {
+func (o ObjectType) ToString() string {
+	switch o {
 	case BLOB:
 		return "blob"
 	case COMMIT:
