@@ -114,10 +114,6 @@ func (oS *ObjectService) ReadCommit(objectID string) (*models.CommitObject, erro
 			}
 			break
 		case "author":
-			_, err = oS.readStringUntilSpecificByte(dataBuffer, 32)
-			if err != nil {
-				return nil, err
-			}
 			author, err := oS.readStringUntilSpecificByte(dataBuffer, 10)
 			if err != nil {
 				return nil, err
@@ -125,10 +121,6 @@ func (oS *ObjectService) ReadCommit(objectID string) (*models.CommitObject, erro
 			commit.Author = author
 			break
 		case "committer":
-			_, err = oS.readStringUntilSpecificByte(dataBuffer, 32)
-			if err != nil {
-				return nil, err
-			}
 			committer, err := oS.readStringUntilSpecificByte(dataBuffer, 10)
 			if err != nil {
 				return nil, err

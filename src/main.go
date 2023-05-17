@@ -40,7 +40,7 @@ func main() {
 			}
 			break
 		case "commit":
-			if err := gitApp.Commit(arg[11:]); err != nil {
+			if err := gitApp.Commit(strings.Trim(arg[11:], "\"\"")); err != nil {
 				fmt.Println(err)
 			}
 			break
@@ -52,6 +52,12 @@ func main() {
 			break
 		case "ls-files":
 			if err := gitApp.LsFiles(); err != nil {
+				fmt.Println(err)
+				return
+			}
+			break
+		case "log":
+			if err := gitApp.Log(); err != nil {
 				fmt.Println(err)
 				return
 			}
