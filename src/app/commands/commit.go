@@ -1,9 +1,11 @@
-package app
+package commands
 
 import (
 	"errors"
+	"fmt"
 	"main/app/models"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -27,5 +29,8 @@ func (app *App) Commit(message string) error {
 	}
 	app.currentTree = app.stagedTree
 	app.ref = commitId
+
+	list := strings.Split(app.branchName, "/")
+	fmt.Printf("[%s %s] %s\n\n", list[len(list)-1], commitId, message)
 	return nil
 }

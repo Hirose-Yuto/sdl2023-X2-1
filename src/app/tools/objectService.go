@@ -51,7 +51,7 @@ func (oS *ObjectService) ReadTree(objectID string) (*models.TreeObject, error) {
 			return nil, err
 		}
 
-		objectIDStr, err := oS.readRawHexUntilSpecificByte(dataBuffer)
+		objectIDStr, err := oS.readRawHex(dataBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -62,61 +62,85 @@ func (oS *ObjectService) ReadTree(objectID string) (*models.TreeObject, error) {
 }
 
 func (oS *ObjectService) ReadCommit(objectID string) (*models.CommitObject, error) {
+	commit := &models.CommitObject{
+		Tree:      "",
+		Parent:    "",
+		Author:    "",
+		Committer: "",
+		Message:   "",
+	}
+
 	data, err := oS.objectIO.ReadObject(objectID, models.COMMIT)
 	if err != nil {
 		return nil, err
 	}
 	dataBuffer := bytes.NewBuffer(data)
 
-	_, err = oS.readStringUntilSpecificByte(dataBuffer, 32)
-	if err != nil {
-		return nil, err
-	}
-	tree, err := oS.readHexUntilSpecificByte(dataBuffer)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := dataBuffer.ReadByte(); err != nil {
-		return nil, err
+	for {
+		if readByte, err := dataBuffer.ReadByte(); err != nil {
+			return nil, err
+		} else if readByte == 10 {
+			break
+		}
+		if err := dataBuffer.UnreadByte(); err != nil {
+			return nil, err
+		}
+
+		index, err := oS.readStringUntilSpecificByte(dataBuffer, 32)
+		if err != nil {
+			return nil, err
+		}
+		switch index {
+		case "tree":
+			tree, err := oS.readHex(dataBuffer)
+			if err != nil {
+				return nil, err
+			}
+			commit.Tree = tree
+			// 改行読み飛ばし
+			if _, err := dataBuffer.ReadByte(); err != nil {
+				return nil, err
+			}
+			break
+		case "parent":
+			parent, err := oS.readHex(dataBuffer)
+			if err != nil {
+				return nil, err
+			}
+			commit.Parent = parent
+			// 改行読み飛ばし
+			if _, err := dataBuffer.ReadByte(); err != nil {
+				return nil, err
+			}
+			break
+		case "author":
+			_, err = oS.readStringUntilSpecificByte(dataBuffer, 32)
+			if err != nil {
+				return nil, err
+			}
+			author, err := oS.readStringUntilSpecificByte(dataBuffer, 10)
+			if err != nil {
+				return nil, err
+			}
+			commit.Author = author
+			break
+		case "committer":
+			_, err = oS.readStringUntilSpecificByte(dataBuffer, 32)
+			if err != nil {
+				return nil, err
+			}
+			committer, err := oS.readStringUntilSpecificByte(dataBuffer, 10)
+			if err != nil {
+				return nil, err
+			}
+			commit.Committer = committer
+			break
+		}
 	}
 
-	_, err = oS.readStringUntilSpecificByte(dataBuffer, 32)
-	if err != nil {
-		return nil, err
-	}
-	parent, err := oS.readHexUntilSpecificByte(dataBuffer)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := dataBuffer.ReadByte(); err != nil {
-		return nil, err
-	}
+	commit.Message = dataBuffer.String()
 
-	_, err = oS.readStringUntilSpecificByte(dataBuffer, 32)
-	if err != nil {
-		return nil, err
-	}
-	author, err := oS.readStringUntilSpecificByte(dataBuffer, 10)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = oS.readStringUntilSpecificByte(dataBuffer, 32)
-	if err != nil {
-		return nil, err
-	}
-	committer, err := oS.readStringUntilSpecificByte(dataBuffer, 10)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := dataBuffer.ReadByte(); err != nil {
-		return nil, err
-	}
-
-	message := dataBuffer.String()
-
-	return &models.CommitObject{Tree: tree, Parent: parent, Author: author, Committer: committer, Message: message}, nil
+	return commit, nil
 }
 
 func (oS *ObjectService) readStringUntilSpecificByte(dataBuffer *bytes.Buffer, sep byte) (string, error) {
@@ -134,28 +158,28 @@ func (oS *ObjectService) readStringUntilSpecificByte(dataBuffer *bytes.Buffer, s
 	return content, nil
 }
 
-func (oS *ObjectService) readHexUntilSpecificByte(dataBuffer *bytes.Buffer) (string, error) {
-	hex := ""
+func (oS *ObjectService) readHex(dataBuffer *bytes.Buffer) (string, error) {
+	h := ""
 	for i := 0; i < 160/4; i++ {
 		b, err := dataBuffer.ReadByte()
 		if err != nil {
 			return "", err
 		}
-		hex += string(b)
+		h += string(b)
 	}
-	return hex, nil
+	return h, nil
 }
 
-func (oS *ObjectService) readRawHexUntilSpecificByte(dataBuffer *bytes.Buffer) (string, error) {
-	hex := ""
+func (oS *ObjectService) readRawHex(dataBuffer *bytes.Buffer) (string, error) {
+	h := ""
 	for i := 0; i < 160/8; i++ {
 		b, err := dataBuffer.ReadByte()
 		if err != nil {
 			return "", err
 		}
-		hex += fmt.Sprintf("%02s", strconv.FormatInt(int64(b), 16))
+		h += fmt.Sprintf("%02s", strconv.FormatInt(int64(b), 16))
 	}
-	return hex, nil
+	return h, nil
 }
 
 func (oS *ObjectService) WriteBlob(content string) (string, error) {
@@ -176,7 +200,9 @@ func (oS *ObjectService) WriteTree(tree *models.TreeObject) (string, error) {
 
 func (oS *ObjectService) WriteCommit(commit *models.CommitObject) (string, error) {
 	content := "tree " + commit.Tree + "\n"
-	content += "parent " + commit.Parent + "\n"
+	if commit.Parent != "" {
+		content += "parent " + commit.Parent + "\n"
+	}
 	content += "author " + commit.Author + "\n"
 	content += "committer " + commit.Committer + "\n"
 	content += "\n"

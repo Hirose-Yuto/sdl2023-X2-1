@@ -3,13 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"main/app"
+	"main/app/commands"
 	"os"
 	"strings"
 )
 
 func main() {
-	gitApp, err := app.NewApp()
+	gitApp, err := commands.NewApp()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -23,16 +23,37 @@ func main() {
 			return
 		}
 		arg := scanner.Text()
+		if strings.Split(arg, " ")[0] != "git" {
+			fmt.Printf("%s is not recognized as a command\n", strings.Split(arg, " ")[0])
+		}
 
-		switch strings.Split(arg, " ")[0] {
+		switch strings.Split(arg, " ")[1] {
+		case "init":
+			if err := gitApp.Init(); err != nil {
+				fmt.Println(err)
+				return
+			}
+			break
 		case "add":
-			if err := gitApp.Add(strings.Split(arg, " ")[1:]); err != nil {
+			if err := gitApp.Add(strings.Split(arg, " ")[2:]); err != nil {
 				fmt.Println(err)
 			}
 			break
 		case "commit":
-			if err := gitApp.Commit(arg[7:]); err != nil {
+			if err := gitApp.Commit(arg[11:]); err != nil {
 				fmt.Println(err)
+			}
+			break
+		case "status":
+			if err := gitApp.Status(); err != nil {
+				fmt.Println(err)
+				return
+			}
+			break
+		case "ls-files":
+			if err := gitApp.LsFiles(); err != nil {
+				fmt.Println(err)
+				return
 			}
 			break
 		}

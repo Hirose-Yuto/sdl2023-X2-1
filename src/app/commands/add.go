@@ -1,13 +1,16 @@
-package app
+package commands
 
 import (
+	"fmt"
 	"main/app/models"
 	"os"
 	"path"
+	"strings"
 )
 
 func (app *App) Add(args []string) error {
 	for _, addedFilePath := range args {
+		addedFilePath = strings.Trim(addedFilePath, "/")
 		file, err := os.Stat(addedFilePath)
 		if err != nil {
 			return err
@@ -25,19 +28,33 @@ func (app *App) Add(args []string) error {
 			}
 		}
 		for {
-			dir, file := path.Split(addedFilePath)
+			file, err := os.Stat(addedFilePath)
+			if err != nil {
+				return err
+			}
+			addedFilePath = strings.Trim(addedFilePath, "/")
+			dir, fileName := path.Split(addedFilePath)
+
+			fmt.Printf("%s -> %s, %s, %t\n", addedFilePath, dir, fileName, file.IsDir())
 
 			var tree *models.TreeObject
 			if dir == "" {
-				tree, err = app.objectService.ReadTree(app.stagedTree)
+				if app.stagedTree != "" {
+					tree, err = app.objectService.ReadTree(app.stagedTree)
+				} else {
+					tree = &models.TreeObject{Elements: make([]*models.TreeElement, 0)}
+				}
 			} else {
-				tree, err = app.objectService.ReadTree(app.pathObjectIdMap[dir])
+				if id, ok := app.pathObjectIdMap[strings.Trim(dir, "/")]; ok {
+					tree, err = app.objectService.ReadTree(id)
+				} else {
+					tree = &models.TreeObject{Elements: make([]*models.TreeElement, 0)}
+				}
 			}
 			if err != nil {
 				return err
 			}
-
-			tree.UpdateObjectID(file, newObjId)
+			tree.UpdateOrCreateObjectID(fileName, newObjId, file.IsDir())
 			newObjId, err = app.objectService.WriteTree(tree)
 			if err != nil {
 				return err
